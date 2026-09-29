@@ -217,6 +217,8 @@
           <h3 class="sub">AI 帮我填：对照评测</h3>
           <p class="dim">开发者模式（网址末尾加 #dev 才显示）。32 条写好标准答案的说法（比如"年薪 36 万、发 14 个月"按税前的 80% 应填成每月到手 20,571 元，"一个月挣两万多"应该先追问），逐条让 AI 填，再和标准答案比对。可以同时比较提示词版本和模型档位。每个配置调用 32 次 AI，费用算在你自己的账户，三个配置大约十几分钟。</p>
           <p class="dim" id="ev-note"></p>
+          <p class="alert" id="ev-need" hidden>还没设置 AI 服务：先点页面上方"AI 帮你填"里的"去设置"，填好 DeepSeek Key，看到"连接成功"后回到这里。</p>
+          <div id="ev-plan"></div>
           <div class="ev-cfgs" id="ev-cfgs"><label><input type="checkbox" value="v1-default" checked> 提示词 v1 · 默认档</label><label><input type="checkbox" value="v2-default" checked> 提示词 v2 · 默认档</label><label><input type="checkbox" value="v2-quick" checked> 提示词 v2 · 快速档</label></div>
           <div class="snap-actions"><button type="button" class="btn primary" id="ev-go">运行对照评测</button><button type="button" class="btn" id="ev-stop" hidden>停止</button></div>
           <div id="ev-out"></div>

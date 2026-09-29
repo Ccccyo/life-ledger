@@ -758,6 +758,8 @@ table.assume td small.src { display: block; margin-top: 4px; font-size: 12px; co
           <h3 class="sub">AI 帮我填：对照评测</h3>
           <p class="dim">开发者模式（网址末尾加 #dev 才显示）。32 条写好标准答案的说法（比如"年薪 36 万、发 14 个月"按税前的 80% 应填成每月到手 20,571 元，"一个月挣两万多"应该先追问），逐条让 AI 填，再和标准答案比对。可以同时比较提示词版本和模型档位。每个配置调用 32 次 AI，费用算在你自己的账户，三个配置大约十几分钟。</p>
           <p class="dim" id="ev-note"></p>
+          <p class="alert" id="ev-need" hidden>还没设置 AI 服务：先点页面上方"AI 帮你填"里的"去设置"，填好 DeepSeek Key，看到"连接成功"后回到这里。</p>
+          <div id="ev-plan"></div>
           <div class="ev-cfgs" id="ev-cfgs"><label><input type="checkbox" value="v1-default" checked> 提示词 v1 · 默认档</label><label><input type="checkbox" value="v2-default" checked> 提示词 v2 · 默认档</label><label><input type="checkbox" value="v2-quick" checked> 提示词 v2 · 快速档</label></div>
           <div class="snap-actions"><button type="button" class="btn primary" id="ev-go">运行对照评测</button><button type="button" class="btn" id="ev-stop" hidden>停止</button></div>
           <div id="ev-out"></div>
@@ -2995,15 +2997,32 @@ const EVAL_CONFIGS = [
   { id: 'v2-default', name: '提示词 v2 · 默认档', ver: 'v2', tier: 'default' },
   { id: 'v2-quick', name: '提示词 v2 · 快速档', ver: 'v2', tier: 'quick' },
 ];
+// 评测透明化：每条题的标准答案、实际用的模型，都写进结果
+const evalWant = c => [...Object.entries(c.expect).map(([k, w]) => `${FILL[k] ? FILL[k].label : k} = ${typeof w === 'object' ? JSON.stringify(w) : w}${FILL[k] && FILL[k].unit && typeof w !== 'object' ? ' ' + FILL[k].unit : ''}`), ...(c.forbid || []).map(k => `不能填 ${FILL[k] ? FILL[k].label : k}`), ...(c.ask ? ['应该追问'] : [])].join('；') || '（什么都不该填）';
+const cfgModel = cfg => AI_KIND === 'deepseek' ? `${dsModel(cfg.tier)}（${cfg.tier === 'quick' ? '不思考' : '思考·低强度'}）` : `Claude ${cfg.tier === 'quick' ? '快速档' : '默认档'}`;
+const escT = t => String(t).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+function evalRowHTML(cfg, r) {
+  const ai = r.ai ? [Object.entries(r.ai.改动).map(([k, v]) => `${FILL[k] ? FILL[k].label : k} = ${typeof v === 'object' ? JSON.stringify(v) : v}`).join('；') || '（没填）', r.ai.追问.length ? '追问：' + r.ai.追问.join(' / ') : ''].filter(Boolean).join('<br>') : `出错：${r.err}`;
+  const why = [...r.wrong, ...r.missing.map(x => `漏填 ${x}`), ...r.extra.map(x => `多填 ${x}`), ...r.forbidden.map(x => `不该填 ${x}`), ...(!r.json ? ['没返回合法 JSON'] : []), ...(EVAL_CASES.find(x => x.id === r.id).ask && !r.asked ? ['该追问没追问'] : [])];
+  return `<tr><td>${escT(cfg.name)}</td><td>${r.id}</td><td class="l wrap">${escT(r.text)}</td><td class="l wrap">${escT(r.expect)}</td><td class="l wrap">${ai}</td><td class="${r.pass ? 'ok' : 'no'}">${r.pass ? '✓' : '✗'}</td><td class="l wrap">${escT(why.join('；'))}</td><td>${(r.ms / 1000).toFixed(1)}s</td></tr>`;
+}
+const EVAL_HEAD = '<thead><tr><th>配置</th><th>#</th><th class="l">用户说的话</th><th class="l">标准答案</th><th class="l">AI 实际填了</th><th>结果</th><th class="l">哪里不对</th><th>耗时</th></tr></thead>';
+function renderEvalPlan() {
+  const host = $('#ev-plan'); if (!host) return;
+  host.innerHTML = `<details class="more"><summary>这次会跑什么：${EVAL_CASES.length} 条题目和标准答案</summary><div class="tbl"><table class="t dense"><thead><tr><th>#</th><th class="l">类别</th><th class="l">用户说的话</th><th class="l">标准答案</th></tr></thead><tbody>${EVAL_CASES.map(c => `<tr><td>${c.id}</td><td class="l">${escT(c.cat)}</td><td class="l wrap">${escT(c.text)}</td><td class="l wrap">${escT(evalWant(c))}</td></tr>`).join('')}</tbody></table></div></details>` +
+    `<details class="more"><summary>发给 AI 的提示词（以第 1 条为例）</summary><p class="dim">v1 是第一版规则，v2 是评测后改进的规则；除规则外其余部分相同。每条题都会把"用户说的话"换进最后一段。</p><h4>v2</h4><pre class="eq" style="white-space:pre-wrap;max-height:360px;overflow:auto">${escT(fillPrompt(EVAL_CASES[0].text, fresh(), 'v2'))}</pre><h4>v1 的规则部分</h4><pre class="eq" style="white-space:pre-wrap">${escT(PROMPT_RULES.v1())}</pre></details>` +
+    `<p class="dim">每个配置用的模型：${EVAL_CONFIGS.map(c => `${c.name} → ${cfgModel(c)}`).join('；')}。每条题都从默认参数开始，AI 的回答按标准答案逐项核对：年龄、个数、比例要完全一致，金额允许 2% 误差。</p>`;
+}
 async function evalOne(c, cfg, signal) {
   const base = fresh(); const q = clone(base);
-  const r = { id: c.id, cat: c.cat, tag: c.tag, ok: 0, want: Object.keys(c.expect).length, wrong: [], missing: [], extra: [], forbidden: [], asked: false, blocked: 0, json: true, ms: 0, chars: 0 };
+  const r = { id: c.id, cat: c.cat, tag: c.tag, text: c.text, expect: evalWant(c), model: cfgModel(cfg), ok: 0, want: Object.keys(c.expect).length, wrong: [], missing: [], extra: [], forbidden: [], asked: false, blocked: 0, json: true, ms: 0, chars: 0 };
   const prompt = fillPrompt(c.text, base, cfg.ver);
   const t0 = performance.now();
   try {
     const res = await SAMPLE.json(prompt, { signal, cache: false, modelTier: cfg.tier });
     r.ms = performance.now() - t0; r.chars = prompt.length + JSON.stringify(res || {}).length;
     if (AI_KIND === 'deepseek' && SAMPLE.lastUsage) { r.tokens = SAMPLE.lastUsage.in + SAMPLE.lastUsage.out; r.usd = dsCost(SAMPLE.lastUsage); }
+    r.ai = { 改动: (res && res.changes) || {}, 追问: cleanQuestions(res && res.questions).map(x => x.q), 推断: (res && res.assumptions) || [], 没法填: (res && res.unclear) || [] };
     const { done, bad } = applyPatch(q, res && res.changes);
     r.blocked = bad.length;
     r.asked = cleanQuestions(res && res.questions).length > 0;
@@ -3051,18 +3070,23 @@ async function runEval() {
   const btn = $('#ev-go'), out = $('#ev-out'); btn.disabled = true; $('#ev-stop').hidden = false;
   const ctl = new AbortController(); $('#ev-stop').onclick = () => ctl.abort();
   const res = [];
+  out.innerHTML = `<p id="ev-prog" class="dim"></p><details class="more" open><summary>逐条过程（跑完一条加一行）</summary><div class="tbl tall"><table class="t dense" id="ev-live">${EVAL_HEAD}<tbody></tbody></table></div></details>`;
+  const live = $('#ev-live').closest('details');
   try {
     for (const cfg of cfgs) {
       const rows = [];
       for (const c of EVAL_CASES) {
-        out.textContent = `正在跑「${cfg.name}」第 ${c.id} / ${EVAL_CASES.length} 条（共 ${cfgs.length} 个配置）……`;
-        rows.push(await evalOne(c, cfg, ctl.signal));
+        $('#ev-prog').textContent = `正在跑「${cfg.name}」第 ${c.id} / ${EVAL_CASES.length} 条（共 ${cfgs.length} 个配置），已完成 ${res.length * EVAL_CASES.length + rows.length} / ${cfgs.length * EVAL_CASES.length} 次调用……`;
+        const row = await evalOne(c, cfg, ctl.signal); rows.push(row);
+        $('#ev-live tbody').insertAdjacentHTML('beforeend', evalRowHTML(cfg, row));
       }
       res.push({ cfg, rows, sum: evalSummary(rows) });
     }
-  } catch (e) { if (!(e && e.code === 'cancelled')) throw e; out.textContent = '已停止。'; btn.disabled = false; $('#ev-stop').hidden = true; if (!res.length) return; }
-  EVAL_RESULT = { at: new Date().toISOString(), provider: aiName(), cases: EVAL_CASES.length, configs: res.map(x => ({ 配置: x.cfg.name, 汇总: x.sum, 明细: x.rows })) };
+  } catch (e) { if (!(e && e.code === 'cancelled')) throw e; $('#ev-prog').textContent = '已停止。上面是已经跑完的部分。'; btn.disabled = false; $('#ev-stop').hidden = true; if (!res.length) return; }
+  EVAL_RESULT = { at: new Date().toISOString(), provider: aiName(), cases: EVAL_CASES.length, configs: res.map(x => ({ 配置: x.cfg.name, 模型: cfgModel(x.cfg), 提示词版本: x.cfg.ver, 汇总: x.sum, 明细: x.rows })) };
+  const liveHTML = live.outerHTML;
   renderEvalReport(res);
+  out.insertAdjacentHTML('beforeend', liveHTML.replace('<details class="more" open>', '<details class="more">').replace('逐条过程（跑完一条加一行）', `全部 ${res.length * EVAL_CASES.length} 次调用的逐条明细（用户说的话、标准答案、AI 实际填了什么）`));
   btn.disabled = false; $('#ev-stop').hidden = true;
 }
 function renderEvalReport(res) {
@@ -3229,7 +3253,16 @@ function applyPatch(q, changes) {
 }
 
 // AI 评测是给开发和面试展示用的，不对普通用户显示：网址末尾加 #dev 才出现
-const DEV = /(^|[#&])dev\b/.test(location.hash);
+let DEV = /(^|[#&])dev\b/.test(location.hash);
+// 评测框：开发者模式下总是显示；还没设置 AI 服务时给提示、按钮不可点
+function showEval() {
+  const box = $('#ev-box'); if (!box) return;
+  box.hidden = !DEV; if (!DEV) return;
+  renderEvalPlan();
+  $('#ev-go').disabled = !SAMPLE;
+  $('#ev-need').hidden = !!SAMPLE;
+}
+window.addEventListener('hashchange', () => { DEV = /(^|[#&])dev\b/.test(location.hash); showEval(); if (DEV) { TAB = 'audit'; renderTabs(); $('#ev-box').scrollIntoView({ behavior: 'smooth', block: 'start' }); } });
 let SAMPLE = null, TOOLS_OK = false, aiCtl = null, askCtl = null, undoP = null;
 const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 function md(t) {
@@ -3466,7 +3499,7 @@ function bindAI() {
     SAMPLE = s; AI_KIND = 'claude';
     const lim = await s.limits().catch(() => null);
     TOOLS_OK = !!(lim && lim.tools);
-    $('#ai-fill').hidden = false; $('#ask-fab').hidden = false; $('#ev-box').hidden = !DEV;
+    $('#ai-fill').hidden = false; $('#ask-fab').hidden = false; showEval();
     renderAIProvider();
   }).catch(() => useDeepSeekIfSet());
 }
@@ -3558,7 +3591,7 @@ function useDeepSeekIfSet() {
   const c = aiCfg();
   if (c.key) { SAMPLE = makeDeepSeek(); TOOLS_OK = true; AI_KIND = 'deepseek'; }
   else { SAMPLE = null; AI_KIND = null; }
-  $('#ai-fill').hidden = false; $('#ask-fab').hidden = false; $('#ev-box').hidden = !SAMPLE || !DEV;
+  $('#ai-fill').hidden = false; $('#ask-fab').hidden = false; showEval();
   renderAIProvider();
 }
 function bindAISetup() {
@@ -3588,6 +3621,7 @@ bindAssume();
 bindAI();
 syncInputs();
 update();
+if (DEV) { TAB = 'audit'; renderTabs(); }
 })();
 
 </script>
