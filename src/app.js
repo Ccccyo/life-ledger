@@ -1161,7 +1161,7 @@ function drawScen() {
 
 // ---------- 假设清单 ----------
 // 每条：[类别, 名称, 当前取值, 依据（来源和年份）, 参数（点"改"跳过去）, 影响试算 [说明, 改法] 或 null]
-const FEEDBACK_URL = '';   // 部署时填 GitHub Issues 地址，例如 'https://github.com/你的用户名/life-ledger/issues/new'；空着就只复制到剪贴板
+const FEEDBACK_URL = 'https://github.com/Ccccyo/life-ledger/issues/new';   // 部署时填 GitHub Issues 地址，例如 'https://github.com/你的用户名/life-ledger/issues/new'；空着就只复制到剪贴板
 let ASSUME_N = 0, FB_ITEM = null;
 function assumptions() {
   const k = K(), c = city(), two = C.adults === 2, kid = P.family === 'kid', buyish = P.housing === 'buy' || C.houseEnd > 0;

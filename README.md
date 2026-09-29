@@ -46,7 +46,7 @@ GitHub Pages 在中国大陆访问时快时慢；只是放作品集、给面试�
 
 ## 反馈与开发者模式
 
-- 假设清单里的"这条不对？"默认把反馈复制到剪贴板。部署后把 `src/app.js` 里的 `FEEDBACK_URL` 改成你仓库的 Issues 新建地址（如 `https://github.com/你的用户名/life-ledger/issues/new`），就会自动打开预填好的 Issue。
+- 假设清单里的"这条不对？"默认把反馈复制到剪贴板。同时会打开本仓库预填好的 Issue（地址在 `src/app.js` 的 `FEEDBACK_URL`，fork 后改成你自己的仓库）。
 - AI 填表评测不对普通用户显示。网址末尾加 `#dev` 才出现，用于开发时跑对照评测。
 
 ## 用 DeepSeek 作为 AI 服务
