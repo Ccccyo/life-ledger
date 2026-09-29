@@ -1,0 +1,287 @@
+<title>一生账本</title>
+<meta name="description" content="把一辈子摊开，看清每一笔：想过什么样的日子，就知道该挣多少；挣多少，就知道能过什么样的日子。">
+@@FONTS@@
+<style>
+@@STYLE@@
+</style>
+
+<div class="wrap">
+  <header class="hero">
+    <div class="kicker">按今天的钱计算 · 数据核对于 2026-09-29</div>
+    <h1>一生账本</h1>
+    <p class="sub"><b>把一辈子摊开，看清每一笔。</b>想过什么样的日子，就知道该挣多少；挣多少，就知道能过什么样的日子。数据只留在你的浏览器里。</p>
+
+    <div class="modebar" id="seg-mode" role="group" aria-label="计算方向"><button type="button" data-v="have">按现在的收入，算能过什么生活</button><button type="button" data-v="need">按想过的生活，算要赚多少</button></div>
+    <p class="money-note"><b>全部按今天的钱算，不考虑通货膨胀。</b>工资涨幅、利率都是扣掉通胀后的实际值，页面上的 100 万就是今天 100 万的购买力。</p>
+    <details class="aibox" id="ai-fill" hidden>
+      <summary>✦ 懒得一个个填？用一句话描述，AI 帮你填</summary>
+      <label for="ai-text">打字或点"按一下说话"，说说你的情况，AI 填进上面的参数，改了哪些会列出来，不对可以一键撤销。点按钮时才会把这段话发给下面的 AI 服务。</label>
+      <p class="ai-provider" id="ai-provider"></p>
+      <div class="ai-setup" id="ai-setup" hidden>
+        <p><b>设置 DeepSeek</b>：到 DeepSeek 开放平台创建 API Key 填在这里。Key 只保存在这台设备的浏览器里，请求从你的浏览器直接发到 DeepSeek，费用记在你自己的账户。不要在公用电脑上保存。</p>
+        <div class="flds"><label class="fld grow"><span>API Key</span><span class="in"><input id="ds-key" type="password" autocomplete="off" spellcheck="false" placeholder="sk-..."></span></label><label class="fld"><span>模型</span><span class="in sel"><select id="ds-model"></select></span></label><label class="fld grow"><span>接口地址（一般不用改）</span><span class="in"><input id="ds-base" type="text" spellcheck="false"></span></label></div>
+        <div class="ai-actions"><button type="button" class="btn primary" id="ds-save">保存并测试</button><button type="button" class="btn" id="ds-clear">清除 Key</button><button type="button" class="btn" id="ds-close">收起</button><span class="ai-status" id="ds-msg" role="status"></span></div>
+      </div>
+      <textarea id="ai-text" rows="3" placeholder="比如：我 28 岁在杭州，每月到手 1.6 万，女朋友到手 1.2 万，打算 30 岁结婚买房，想要两个孩子，父母能给 100 万首付，存款 20 万。"></textarea>
+      <div class="ai-actions"><button type="button" class="btn mic-btn" id="ai-mic" hidden aria-label="语音输入"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 14a3 3 0 0 0 3-3V5a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2Z"/></svg><span>按一下说话</span></button><button type="button" class="btn primary" id="ai-go">AI 帮我填</button><button type="button" class="btn" id="ai-stop" hidden>停止</button><span class="ai-status" id="ai-status" role="status"></span></div>
+      <div id="ai-diff"></div>
+    </details>
+    <div class="setup" id="madlib">
+      <section class="card">
+        <h3>你现在</h3>
+        <div class="flds">
+          <label class="fld"><span>城市</span><span class="in sel"><select id="h-city" aria-label="城市"></select></span></label>
+          <label class="fld"><span>今年</span><span class="in"><input id="h-start" type="number" inputmode="numeric" aria-label="今年年龄"><i>岁</i></span></label>
+          <label class="fld"><span>现有存款</span><span class="in"><input id="h-sav" type="number" inputmode="decimal" aria-label="现有存款（万元）"><i>万</i></span></label>
+        </div>
+        <div class="flds" id="h-income">
+          <label class="fld w"><span>每月到手</span><span class="in"><input id="h-me-sal" type="number" inputmode="decimal" aria-label="你每月到手（扣完个税社保公积金）"><i>元</i></span></label>
+          <label class="fld"><span>一年到手</span><span class="in"><input id="h-me-mon" type="number" inputmode="decimal" aria-label="你一年到手几个月（含年终奖）"><i>个月</i></span></label>
+          <p class="hint2 full">填扣完个税、社保、公积金以后实际到账的钱。只知道税前的话，大约乘 0.8。</p>
+        </div>
+      </section>
+      <section class="card">
+        <h3>工作与养老</h3>
+        <div class="flds">
+          <label class="fld"><span>工作到</span><span class="in"><input id="h-retire" type="number" inputmode="numeric" aria-label="工作到多少岁"><i>岁</i></span></label>
+          <label class="fld"><span>开始领养老金</span><span class="in"><input id="h-page" type="number" inputmode="numeric" aria-label="开始领养老金年龄"><i>岁</i></span></label>
+          <label class="fld"><span>账算到</span><span class="in"><input id="h-end" type="number" inputmode="numeric" aria-label="规划到多少岁"><i>岁</i></span></label>
+          <label class="fld"><span>之前已交社保</span><span class="in"><input id="h-paid" type="number" inputmode="numeric" aria-label="今年之前已经交了几年社保"><i>年</i></span></label>
+        </div>
+        <p class="hint2" id="h-work-hint">不工作不等于能领养老金：1985 年后出生男性 63 岁、女性 58 岁起领。</p>
+      </section>
+      <section class="card">
+        <h3>家庭</h3>
+        <div class="seg" id="seg-family" role="group" aria-label="家庭结构"><button type="button" data-v="single">单身</button><button type="button" data-v="couple">已婚无孩</button><button type="button" data-v="kid">已婚有孩</button></div>
+        <div class="flds">
+          <label class="fld" id="h-kids-wrap"><span>孩子</span><span class="in sel"><select id="h-kids" aria-label="孩子数量"><option value="1">1 个</option><option value="2">2 个</option><option value="3">3 个</option></select></span></label>
+          <label class="fld grow" id="h-route-wrap"><span>教育路线</span><span class="in sel"><select id="h-route" aria-label="孩子教育路线"></select></span></label>
+        </div>
+      </section>
+      <section class="card" id="h-sp-line">
+        <h3>配偶 <button type="button" class="linkbtn" id="h-sp-same">改回和我一样</button></h3>
+        <div class="flds">
+          <label class="fld"><span>今年</span><span class="in"><input id="h-sp-age" type="number" inputmode="numeric" aria-label="配偶今年年龄"><i>岁</i></span></label>
+          <label class="fld"><span>工作到</span><span class="in"><input id="h-sp-ret" type="number" inputmode="numeric" aria-label="配偶工作到多少岁"><i>岁</i></span></label>
+          <label class="fld"><span>领养老金</span><span class="in"><input id="h-sp-page" type="number" inputmode="numeric" aria-label="配偶开始领养老金年龄"><i>岁</i></span></label>
+          <label class="fld"><span>之前已交社保</span><span class="in"><input id="h-sp-paid" type="number" inputmode="numeric" aria-label="配偶之前已经交了几年社保"><i>年</i></span></label>
+        </div>
+        <div class="flds" id="h-sp-wrap">
+          <label class="fld w"><span>每月到手</span><span class="in"><input id="h-sp-sal" type="number" inputmode="decimal" aria-label="配偶每月到手"><i>元</i></span></label>
+          <label class="fld"><span>一年到手</span><span class="in"><input id="h-sp-mon" type="number" inputmode="decimal" aria-label="配偶一年到手几个月"><i>个月</i></span></label>
+        </div>
+        <div class="flds" id="h-split-line">
+          <label class="fld"><span>你的收入占家庭</span><span class="in"><input id="h-split" type="number" inputmode="decimal" aria-label="你的收入占家庭比例"><i>%</i></span></label>
+        </div>
+      </section>
+      <section class="card">
+        <h3>住房</h3>
+        <div class="seg" id="seg-housing" role="group" aria-label="住房"><button type="button" data-v="buy">买房</button><button type="button" data-v="rent">一直租房</button><button type="button" data-v="own">已有房</button></div>
+        <div class="flds">
+          <label class="fld"><span>家里能支持</span><span class="in"><input id="h-support" type="number" inputmode="decimal" aria-label="家庭支持（万元）"><i>万</i></span></label>
+        </div>
+      </section>
+      <section class="card wide">
+        <h3>以后的变化 <small>搬家、换房、你或配偶的工作变动、大额收支都可以加，会画在时间轴上</small></h3>
+        <div id="h-moves" class="moves"></div>
+        <div id="h-events" class="moves"></div>
+      </section>
+    </div>
+
+
+    <div class="citycard" id="citycard"></div>
+
+    <p class="lead" id="lead"></p>
+    <div class="kpis" id="kpis"></div>
+    <details class="how" id="how"><summary>这个数怎么算出来的</summary><div id="how-body"></div></details>
+    <div id="alert"></div>
+  </header>
+
+  <div class="app">
+    <button type="button" class="mob-toggle" id="mob-toggle" aria-expanded="false" aria-controls="panel"><span>调整全部参数</span><span aria-hidden="true">＋</span></button>
+    <aside class="panel collapsed" id="panel" aria-label="参数">
+      <div class="panel-top"><h3>全部参数</h3></div>
+      <p class="hint">城市、年龄、家庭和住房在页面顶部改。这里是细项，改了立即重算。</p>
+      <div id="groups"></div>
+      <div class="panel-foot">
+        <button type="button" class="btn" id="btn-city-reset">按当前城市重填参考值</button>
+        <button type="button" class="btn" id="btn-reset">全部恢复默认</button>
+      </div>
+    </aside>
+
+    <main class="report" id="report">
+      <nav class="tabs" id="tabs" role="tablist" aria-label="报告分页"></nav>
+      <section class="sec" data-tab="sum" id="s0" hidden>
+        <div class="eyebrow">结论</div>
+        <h2>按你的收入，能过什么生活</h2>
+        <div id="s0-sum"></div>
+        <h3 class="sub">其他都不变，单项最多能到哪</h3>
+        <p class="dim">"负担得起"指从头到尾每一年存款都不为负。</p>
+        <div class="tbl"><table class="t" id="knobs"></table></div>
+        <h3 class="sub">三档生活对照</h3>
+        <p class="dim" id="lifetiers-intro"></p>
+        <div class="tbl"><table class="t" id="lifetiers"></table></div>
+        <p class="dim">教育路线负担得起哪些，见"教育"页的路线表。</p>
+      </section>
+
+      <section class="sec" data-tab="spend" id="s1">
+        
+        <h2>从今年起要花多少，和要自己挣的钱</h2>
+        <p class="dim" id="s1-intro"></p>
+        <div class="tl" id="timeline"></div>
+        <div class="bd" id="breakdown"></div>
+        <div class="per" id="per"></div>
+        <p class="dim" id="house-asset"></p>
+        <h3 class="sub">按人生阶段看</h3>
+        <p class="dim">每个阶段一年平均花多少、钱主要花在哪。</p>
+        <div class="tbl"><table class="t" id="stages"></table></div>
+        <details class="more" id="yt-wrap"><summary>展开逐年明细表</summary><div class="tbl tall"><table class="t dense" id="yeartable"></table></div></details>
+        <h3 class="sub">扣掉别人给的，剩下要自己挣</h3>
+        <p class="dim">今后总支出 − 家庭支持 − 现有存款 − 国家基本养老金 = 最终自筹。</p>
+        <div class="eq" id="equation"></div>
+        <div id="s3-notes"></div>
+      </section>
+
+      <section class="sec" data-tab="edu" id="s2">
+        
+        <h2>孩子的教育路线</h2>
+        <p class="dim" id="s2-intro"></p>
+        <div class="routes" id="routes" role="group" aria-label="常见路线"></div>
+        <div class="stagegrid" id="stagegrid"></div>
+        <h3 class="sub">5 档各要花多少钱（一个孩子，从出生到毕业）</h3>
+        <p class="dim" id="routes-intro"></p>
+        <div class="tbl"><table class="t dense" id="routetable"></table></div>
+      </section>
+
+      <section class="sec" data-tab="earn" id="s4">
+        
+        <h2 id="s4-title">每年要赚多少</h2>
+        <p>钱有时间价值：早花的一块钱，要用更早挣的钱来付，晚一点花就能多存几年利息。所以本页把每一年的开销和收入都按利率折算到开始工作那年再比较。自筹的钱分两块：工作期边挣边花的部分，和退休后养老金不够的缺口。两块折算后相加，再除以"起步收入每 1 元在整个工作期相当于多少钱"，就得到起步那年需要的收入。</p>
+        <div class="calc" id="calc"></div>
+        <div id="factor-note"></div>
+        <div id="pension-note"></div>
+        <details class="more" id="adv"><summary>进阶：按储蓄率看，和常见简化算法的区别</summary>
+          <p class="dim">储蓄率 = 每年存下的钱 ÷ 每年到手收入。收入要同时满足两件事：存够养老，也花够日常。两个条件里要求更高的那个决定收入。这张表按"存款和借款同一利率"简化，和上面结果可能略有差别。</p>
+          <div class="tbl"><table class="t" id="tiers"></table></div>
+          <div id="naive-note"></div>
+        </details>
+      </section>
+
+      <section class="sec" data-tab="risk" id="s5">
+        <div class="eyebrow">检验</div>
+        <h2>逐年现金流</h2>
+        <p class="dim">上面的公式把开销平摊到每一年。真实的钱是一年一年花出去的，买房那年、孩子上大学那几年会集中支出。下面按每年的实际支出和"每年要赚"的收入逐年滚动，看存款会不会在某一年变成负数。</p>
+        <h3 class="sub">每年花多少</h3>
+        <div class="chart" id="chart-spend"></div>
+        <h3 class="sub" id="bal-title"></h3>
+        <div class="chart" id="chart-bal"></div>
+        <p id="sim-text"></p>
+        <h3 class="sub">三种情况：顺利、一般、不顺</h3>
+        <p class="dim" id="mc-intro"></p>
+        <div class="chart" id="chart-mc"></div>
+        <div class="tbl"><table class="t" id="scentable"></table></div>
+        <p id="mc-text"></p>
+      </section>
+
+      <section class="sec" data-tab="assume" id="s-assume">
+        <div class="eyebrow">假设</div>
+        <h2>这份账本做了哪些假设</h2>
+        <p class="dim">结论全部由下面这些假设推出来。每条都标了依据和年份；"影响"一栏是只改这一条、其他不变时，结论会差多少（按现在的收入看时，把终点存款的差额按存款利率折回今天，方便比较），按影响从大到小排。觉得哪条不符合你的情况，点"改"直接调；觉得哪条本身不对，点"这条不对？"告诉我们。</p>
+        <div class="tbl"><table class="t assume" id="assume-tbl"></table></div>
+        <div class="fb" id="fb" hidden>
+          <p class="fb-q" id="fb-q"></p>
+          <textarea id="fb-text" rows="3" placeholder="哪里不对？你的实际情况或依据是什么？（选填）"></textarea>
+          <div class="fb-act"><button type="button" class="btn primary" id="fb-send">复制反馈</button><button type="button" class="btn" id="fb-cancel">取消</button><span class="dim" id="fb-msg"></span></div>
+        </div>
+        <h3 class="sub">没算进去的</h3>
+        <ul class="lim" id="limits"></ul>
+        <h3 class="sub">一次只改一个假设</h3>
+        <p class="dim">在当前设定上一次只改一个假设，高亮行是你现在的设定。</p>
+        <div class="tbl"><table class="t" id="sens"></table></div>
+      </section>
+
+      <section class="sec" data-tab="audit" id="s-audit">
+        <div class="eyebrow">核对</div>
+        <h2>每个数都能核对</h2>
+        <p class="dim">这一页把计算摊开：先看页面自己做的检查，再看每条公式代入你的数，最后挑任意一年逐项核对。也可以下载逐年明细，用 Excel 自己重算。</p>
+        <h3 class="sub">页面自检</h3>
+        <p class="dim">每次改参数都会重新跑一遍。任何一项不通过，说明计算有问题，欢迎反馈。</p>
+        <ul class="checks" id="au-checks"></ul>
+        <h3 class="sub">公式和你的数</h3>
+        <div class="formulas" id="au-formulas"></div>
+        <h3 class="sub">挑一年逐项核对</h3>
+        <div class="ctl"><span class="lab">看哪一岁</span><select id="au-age" aria-label="选择年龄"></select></div>
+        <div class="tbl"><table class="t" id="au-year"></table></div>
+        <p class="dim" id="au-rec"></p>
+        <div id="ev-box" hidden>
+          <h3 class="sub">AI 帮我填：对照评测</h3>
+          <p class="dim">开发者模式（网址末尾加 #dev 才显示）。32 条写好标准答案的说法（比如"年薪 36 万、发 14 个月"按税前的 80% 应填成每月到手 20,571 元，"一个月挣两万多"应该先追问），逐条让 AI 填，再和标准答案比对。可以同时比较提示词版本和模型档位。每个配置调用 32 次 AI，费用算在你自己的账户，三个配置大约十几分钟。</p>
+          <p class="dim" id="ev-note"></p>
+          <div class="ev-cfgs" id="ev-cfgs"><label><input type="checkbox" value="v1-default" checked> 提示词 v1 · 默认档</label><label><input type="checkbox" value="v2-default" checked> 提示词 v2 · 默认档</label><label><input type="checkbox" value="v2-quick" checked> 提示词 v2 · 快速档</label></div>
+          <div class="snap-actions"><button type="button" class="btn primary" id="ev-go">运行对照评测</button><button type="button" class="btn" id="ev-stop" hidden>停止</button></div>
+          <div id="ev-out"></div>
+        </div>
+        <h3 class="sub">下载明细</h3>
+        <p class="dim">逐年明细（支出分项、进账、利息、年末存款）和全部参数，可以用 Excel 或其他工具独立复算。</p>
+        <div class="snap-actions"><button type="button" class="btn primary" id="au-csv">下载逐年明细 CSV</button><button type="button" class="btn" id="au-json">下载参数和结果 JSON</button><span class="msg" id="au-msg" role="status"></span></div>
+      </section>
+
+      <section class="sec" data-tab="basis" id="s7">
+        <div class="eyebrow">依据</div>
+        <h2>参数从哪里来</h2>
+        <h3 class="sub">城市参考数据</h3>
+        <p class="dim">选城市时自动填入的数。标"估"的是推算值，建议按自己的情况改。</p>
+        <div class="tbl"><table class="t" id="citytable"></table></div>
+        <h3 class="sub">教育费用参照</h3>
+        <p class="dim" id="edu-ref-intro"></p>
+        <div class="tbl"><table class="t" id="edutable"></table></div>
+        <h3 class="sub">其他参数</h3>
+        <div class="tbl"><table class="t" id="sources"></table></div>
+      </section>
+
+
+      <section class="sec snap-block" data-tab="basis" id="s9">
+        <div class="eyebrow">存档</div>
+        <h2>参数快照</h2>
+        <p class="dim">这台设备的浏览器会记住你上次的参数。想长期存档或换设备，复制下面这段文字保存；以后粘贴回来，点"应用快照"就能还原同一份报告。</p>
+        <textarea id="snap" spellcheck="false" aria-label="参数快照"></textarea>
+        <div class="snap-actions">
+          <button type="button" class="btn primary" id="btn-copy">复制快照</button>
+          <button type="button" class="btn" id="btn-apply">应用快照</button>
+          <span class="msg" id="snap-msg" role="status"></span>
+        </div>
+      </section>
+
+      <footer class="foot" id="foot"></footer>
+    </main>
+  </div>
+</div>
+
+  <button type="button" class="fab" id="ask-fab" hidden aria-controls="ask-drawer">✦ 问问这份账本</button>
+  <aside class="drawer" id="ask-drawer" hidden aria-label="问问这份账本">
+    <div class="drawer-hd"><b>问问这份账本</b><span><button type="button" class="linkbtn" id="ask-clear" hidden>清空</button><button type="button" class="x" id="ask-close" aria-label="关闭">×</button></span></div>
+    <div class="chat-body" id="ask-body">
+      <div class="chat-empty" id="ask-empty">
+        <p class="dim">问"为什么""怎么办""如果……会怎样"。AI 只根据这页的数字回答；要试新方案时，它会调用本页的计算器现算，不自己心算。</p>
+        <div class="chips" id="ask-chips"></div>
+      </div>
+      <div class="thread" id="ask-thread" aria-live="polite"></div>
+    </div>
+    <div class="chat-input">
+      <textarea id="ask-text" rows="1" placeholder="问点什么，比如：55 岁不工作要多挣多少？"></textarea>
+      <button type="button" class="ibtn mic" id="ask-mic" hidden aria-label="语音输入" title="语音输入"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 14a3 3 0 0 0 3-3V5a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2Z"/></svg></button>
+      <button type="button" class="ibtn send" id="ask-go" aria-label="发送" title="发送"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M3 20.5 21 12 3 3.5l.01 6.6L15 12 3.01 13.9 3 20.5Z"/></svg></button>
+      <button type="button" class="ibtn stop" id="ask-stop" hidden aria-label="停止" title="停止"><span></span></button>
+    </div>
+    <p class="chat-foot" id="ask-foot">提问时会把本页参数和结果发给 AI 服务 · 测算解读，不是投资建议</p>
+  </aside>
+
+<script>
+@@DATA@@
+</script>
+<script>
+@@MODEL@@
+</script>
+<script>
+@@APP@@
+</script>
